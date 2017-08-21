@@ -9,7 +9,6 @@ startingTrade = 200000
 
 
 class Trade:
-
     volume = 0
     price = 0
     time = 0
@@ -114,7 +113,7 @@ class AutoTrader:
     def printResults(self):
         self.calcResults()
         print("Holding Gain: {:.2f}%".format(self.holdingValue * 100))
-        print("\nTrading Value: {:.2f}%".format(self.tradingValue * 100))
+        print("Trading Value: {:.2f}%".format(self.tradingValue * 100))
         print("Value Difference: {}".format(self.valueDifference * 100))
 
     def plotTrades(self):
