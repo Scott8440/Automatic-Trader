@@ -1,0 +1,4 @@
+8 - 20 - 2017
+  * Began project
+  * Implemented simple moving average trader 
+  * Results all negative
