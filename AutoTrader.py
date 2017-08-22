@@ -56,7 +56,6 @@ class AutoTrader:
         return {'time': time, 'price': price, 'volume': volume}
 
     def tradeCoins(self, trade):
-        print(trade)
         if (trade.tradeType == 'buy'):
             self.coins += trade.volume
             self.funds -= trade.volume * trade.price
@@ -65,9 +64,6 @@ class AutoTrader:
             self.funds += trade.volume * trade.price
         self.holding = self.coins > 0
         self.completedTrades.append(trade)
-        print(self.holding)
-        print(self.coins)
-        print(self.funds)
 
     def simulate(self, btcTime, btcPrice, startingFunds):
         length = len(btcTime)
