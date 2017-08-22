@@ -7,11 +7,13 @@ from Trade import Trade
 class AutoTrader:
     dataFilename = ''
     completedTrades = []
+    shortLength = 0
+    longLength = 0
+
+    # wallet status
     startingFunds = 0
     funds = 0
     coins = 0
-    shortLength = 0
-    longLength = 0
     holding = False
 
     # coin data
@@ -56,12 +58,8 @@ class AutoTrader:
         return {'time': time, 'price': price, 'volume': volume}
 
     def tradeCoins(self, trade):
-        if (trade.tradeType == 'buy'):
-            self.coins += trade.volume
-            self.funds -= trade.volume * trade.price
-        else:
-            self.coins -= trade.volume
-            self.funds += trade.volume * trade.price
+        self.coins += trade.volume
+        self.funds -= trade.volume * trade.price
         self.holding = self.coins > 0
         self.completedTrades.append(trade)
 
@@ -84,12 +82,12 @@ class AutoTrader:
             if (self.holding and shortAboveLong and shortAvg < longAvg):
                 shortAboveLong = False
                 holding = False
-                trade = Trade('sell', btcTime[i], btcPrice[i], self.coins)
+                trade = Trade(btcTime[i], btcPrice[i], -self.coins)
                 self.tradeCoins(trade)
             elif (not self.holding and not shortAboveLong and shortAvg > longAvg):
                 shortAboveLong = True
                 amountBought = self.funds / btcPrice[i]
-                trade = Trade('buy', btcTime[i], btcPrice[i], amountBought)
+                trade = Trade(btcTime[i], btcPrice[i], amountBought)
                 self.tradeCoins(trade)
 
     def calcResults(self):
@@ -117,7 +115,7 @@ class AutoTrader:
         plt.plot(self.btcTime, longMovingAverageList, 'orange')
         for i in range(numTrades):
             trade = self.completedTrades[i]
-            color = 'green' if trade.tradeType == 'buy' else 'red'
+            color = 'green' if trade.volume >= 0  else 'red'
             stats.plotSinglePoint(trade.time, trade.price, color)
         ax = plt.gca()
         ax.patch.set_facecolor('#ABB2B9')
