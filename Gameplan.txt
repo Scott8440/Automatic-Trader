@@ -1,24 +1,18 @@
 Short Term:
-
   > clean up implementation for moving average trader
   > Make plots look better
-    * Maybe use plotly for better interactivity
-  > Start using git to track changes
+    * Maybe use plotly for interactivity
 
 Mid Term:
-
   > Implement more trading strategies
   > Make class system work for easy extension
-  >
 
 Long Term
-
   > Machine Learning
     * Implement evolutionary algorithm for adjusting parameters of certain
       trading strategies
-    * [REACH] Move to GPU
+    * [REACH] Move to using GPUs
   > Improve performance
     * numpy for statistical calculations
-
   > Build API for backtesting
     * Allow different sources of stock info

@@ -34,6 +34,7 @@ class AutoTrader:
     # coin data
     btcTime = []
     btcPrice = []
+
     # Results
     tradingValue = 0
     holdingValue = 0
