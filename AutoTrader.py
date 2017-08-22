@@ -12,7 +12,7 @@ class AutoTrader:
     coins = 0
     shortLength = 0
     longLength = 0
-    shouldCreatePlot = False
+    holding = False
 
     # coin data
     btcTime = []
@@ -27,14 +27,12 @@ class AutoTrader:
                  dataFilename,
                  startingFunds,
                  shortLength,
-                 longLength,
-                 shouldCreatePlot):
+                 longLength):
         self.dataFilename = str(dataFilename)
         self.funds = float(startingFunds)
         self.startingFunds = float(startingFunds)
         self.shortLength = shortLength
         self.longLength = longLength
-        self.shouldCreatePlot = bool(shouldCreatePlot)
 
     def getPriceData(self, filename, numTrades, startingTrade):
         time = []
@@ -57,13 +55,26 @@ class AutoTrader:
         self.btcTime = time
         return {'time': time, 'price': price, 'volume': volume}
 
+    def tradeCoins(self, trade):
+        print(trade)
+        if (trade.tradeType == 'buy'):
+            self.coins += trade.volume
+            self.funds -= trade.volume * trade.price
+        else:
+            self.coins -= trade.volume
+            self.funds += trade.volume * trade.price
+        self.holding = self.coins > 0
+        self.completedTrades.append(trade)
+        print(self.holding)
+        print(self.coins)
+        print(self.funds)
+
     def simulate(self, btcTime, btcPrice, startingFunds):
         length = len(btcTime)
         shortAvg = 0
         longAvg = 0
         outlierAverage = 0
         shortAboveLong = False
-        holding = False
         for i in range(length):
             shortAvg = stats.singleMovingAverage(
                 btcPrice, i, self.shortLength, shortAvg)
@@ -74,22 +85,16 @@ class AutoTrader:
             if (stats.tradeIsOutlier(btcPrice[i], outlierAverage, 0.04)):
                 continue
 
-            if (holding and shortAboveLong and shortAvg < longAvg):
+            if (self.holding and shortAboveLong and shortAvg < longAvg):
                 shortAboveLong = False
                 holding = False
-                totalSale = self.coins * btcPrice[i]
-                self.funds += totalSale
-                soldCoins = self.coins
-                self.coins = 0
-                trade = Trade('sell', btcTime[i], btcPrice[i], soldCoins)
-                self.completedTrades.append(trade)
-            elif (not holding and not shortAboveLong and shortAvg > longAvg):
+                trade = Trade('sell', btcTime[i], btcPrice[i], self.coins)
+                self.tradeCoins(trade)
+            elif (not self.holding and not shortAboveLong and shortAvg > longAvg):
                 shortAboveLong = True
-                holding = True
-                self.coins += self.funds / btcPrice[i]
-                self.funds = 0
-                trade = Trade('buy', btcTime[i], btcPrice[i], self.coins)
-                self.completedTrades.append(trade)
+                amountBought = self.funds / btcPrice[i]
+                trade = Trade('buy', btcTime[i], btcPrice[i], amountBought)
+                self.tradeCoins(trade)
 
     def calcResults(self):
         finalPosition = self.funds + self.coins * self.btcPrice[-1]
@@ -109,11 +114,11 @@ class AutoTrader:
     def plotTrades(self):
         numTrades = len(self.completedTrades)
         shortMovingAverageList = stats.movingAverage(
-            btcPrice, self.shortLength)
-        longMovingAverageList = stats.movingAverage(btcPrice, self.longLength)
-        plt.plot(btcTime, btcPrice, '#5DADE2')
-        plt.plot(btcTime, shortMovingAverageList, 'green')
-        plt.plot(btcTime, longMovingAverageList, 'orange')
+            self.btcPrice, self.shortLength)
+        longMovingAverageList = stats.movingAverage(self.btcPrice, self.longLength)
+        plt.plot(self.btcTime, self.btcPrice, '#5DADE2')
+        plt.plot(self.btcTime, shortMovingAverageList, 'green')
+        plt.plot(self.btcTime, longMovingAverageList, 'orange')
         for i in range(numTrades):
             trade = self.completedTrades[i]
             color = 'green' if trade.tradeType == 'buy' else 'red'
