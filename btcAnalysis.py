@@ -3,7 +3,7 @@ import datetime
 import matplotlib.pyplot as plt
 import statistics as stats
 
-btcFile = '../PriceData/coinbaseUSD.csv'
+btcFile = './PriceData/coinbaseUSD.csv'
 numTrades = 1000000
 startingTrade = 200000
 
