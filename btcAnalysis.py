@@ -78,6 +78,7 @@ class AutoTrader:
         length = len(btcTime)
         shortAvg = 0
         longAvg = 0
+        outlierAverage = 0
         shortAboveLong = False
         holding = False
         for i in range(length):
@@ -85,6 +86,11 @@ class AutoTrader:
                 btcPrice, i, self.shortLength, shortAvg)
             longAvg = stats.singleMovingAverage(
                 btcPrice, i, self.longLength, longAvg)
+            outlierAverage = stats.singleMovingAverage(
+                btcPrice, i, 100, outlierAverage)
+            if (stats.tradeIsOutlier(btcPrice[i], outlierAverage, 0.04)):
+                continue
+                
             if (holding and shortAboveLong and shortAvg < longAvg):
                 shortAboveLong = False
                 holding = False

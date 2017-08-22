@@ -29,6 +29,10 @@ def singleMovingAverage(data, index, n, previousValue):
     return result
 
 
+def tradeIsOutlier(tradePrice, currentAverage, threshold):
+    return bool(abs(tradePrice - currentAverage) > threshold*currentAverage)
+
+
 def prevSum(data, index, len):
     psum = 0
     for i in range(len + 1):

@@ -2,8 +2,8 @@
     > clean up implementation for moving average trader
     > Make plots look better
       * Maybe use plotly for interactivity
-    > Avoid trading on outliers
-    
+    x Avoid trading on outliers
+
 Mid Term:
   > Implement more trading strategies
   > Make class system work for easy extension
