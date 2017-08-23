@@ -1,11 +1,9 @@
-import csv
-import datetime
 import matplotlib.pyplot as plt
 import statistics as stats
 from Trade import Trade
 
+
 class AutoTrader:
-    dataFilename = ''
     completedTrades = []
     shortLength = 0
     longLength = 0
@@ -16,9 +14,11 @@ class AutoTrader:
     coins = 0
     holding = False
 
-    # coin data
-    btcTime = []
-    btcPrice = []
+    # trade history
+    history = {}
+
+    # statistics
+    marketStats = {}
 
     # Results
     tradingValue = 0
@@ -26,36 +26,67 @@ class AutoTrader:
     valudeDifference = 0
 
     def __init__(self,
-                 dataFilename,
                  startingFunds,
                  shortLength,
                  longLength):
-        self.dataFilename = str(dataFilename)
         self.funds = float(startingFunds)
         self.startingFunds = float(startingFunds)
+        self.history['price'] = []
+        self.history['time'] = []
+        # TODO: Should abstract the stats out
         self.shortLength = shortLength
         self.longLength = longLength
+        self.marketStats['shortMovingAverageList'] = []
+        self.marketStats['longMovingAverageList'] = []
+        self.marketStats['shortAboveLong'] = False
+        self.marketStats['longAboveShort'] = False
+        self.marketStats['shortAvg'] = 0
+        self.marketStats['longAvg'] = 0
+        self.marketStats['outlierAverage'] = 0
 
-    def getPriceData(self, filename, numTrades, startingTrade):
-        time = []
-        price = []
-        volume = []
-        with open(filename) as csvfile:
-            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-            for row in reader:
-                if startingTrade > 0:
-                    startingTrade -= 1
-                    continue
-                if numTrades > 0:
-                    time.append(datetime.datetime.fromtimestamp(int(row[0])))
-                    price.append(float(row[1]))
-                    volume.append(float(row[2]))
-                    numTrades -= 1
-                else:
-                    break
-        self.btcPrice = price
-        self.btcTime = time
-        return {'time': time, 'price': price, 'volume': volume}
+    def marketUpdate(self, trade):
+        self.history['price'].append(trade.price)
+        self.history['time'].append(trade.time)
+        self.updateStatistics(trade)
+        self.checkIfShouldTrade()
+
+    def updateStatistics(self, trade):
+        shortAvg = stats.singleMovingAverage(
+            self.history['price'], self.shortLength, self.marketStats['shortAvg'])
+        longAvg =  stats.singleMovingAverage(
+            self.history['price'], self.longLength, self.marketStats['longAvg'])
+        outlierAverage = stats.singleMovingAverage(
+            self.history['price'], 100, self.marketStats['outlierAverage'])
+        self.marketStats['shortAboveLong'] = shortAvg > longAvg
+        self.marketStats['longAboveShort'] = longAvg > shortAvg
+        self.marketStats['shortAvg'] = shortAvg
+        self.marketStats['longAvg'] = longAvg
+        self.marketStats['outlierAverage'] = outlierAverage
+        self.marketStats['shortMovingAverageList'].append(shortAvg)
+        self.marketStats['longMovingAverageList'].append(longAvg)
+        self.marketStats['outlierAverage'] = outlierAverage
+
+    def checkIfShouldTrade(self):
+        if (stats.tradeIsOutlier(self.history['price'][-1], self.marketStats['outlierAverage'], 0.04)):
+            console.log('outlier')
+            return
+        if len(self.marketStats['shortMovingAverageList']) < 2:
+            return
+        prevShortAvg = self.marketStats['shortMovingAverageList'][-2]
+        prevLongAvg = self.marketStats['longMovingAverageList'][-2]
+        if (self.holding and self.marketStats['shortAboveLong'] and
+              prevShortAvg < prevLongAvg):
+            # Sell Coins
+            print('sell')
+            trade = Trade(self.history['time'][-1], self.history['price'][-1], -self.coins)
+            self.tradeCoins(trade)
+        elif (not self.holding and not self.marketStats['shortAboveLong'] and
+                prevShortAvg > prevLongAvg):
+            # Buy Coins
+            print('buy')
+            amountBought = self.funds / self.history['price'][-1]
+            trade = Trade(self.history['time'][-1], self.history['price'][-1], amountBought)
+            self.tradeCoins(trade)
 
     def tradeCoins(self, trade):
         self.coins += trade.volume
@@ -63,39 +94,12 @@ class AutoTrader:
         self.holding = self.coins > 0
         self.completedTrades.append(trade)
 
-    def simulate(self, btcTime, btcPrice, startingFunds):
-        length = len(btcTime)
-        shortAvg = 0
-        longAvg = 0
-        outlierAverage = 0
-        shortAboveLong = False
-        for i in range(length):
-            shortAvg = stats.singleMovingAverage(
-                btcPrice, i, self.shortLength, shortAvg)
-            longAvg = stats.singleMovingAverage(
-                btcPrice, i, self.longLength, longAvg)
-            outlierAverage = stats.singleMovingAverage(
-                btcPrice, i, 100, outlierAverage)
-            if (stats.tradeIsOutlier(btcPrice[i], outlierAverage, 0.04)):
-                continue
-
-            if (self.holding and shortAboveLong and shortAvg < longAvg):
-                shortAboveLong = False
-                holding = False
-                trade = Trade(btcTime[i], btcPrice[i], -self.coins)
-                self.tradeCoins(trade)
-            elif (not self.holding and not shortAboveLong and shortAvg > longAvg):
-                shortAboveLong = True
-                amountBought = self.funds / btcPrice[i]
-                trade = Trade(btcTime[i], btcPrice[i], amountBought)
-                self.tradeCoins(trade)
-
     def calcResults(self):
-        finalPosition = self.funds + self.coins * self.btcPrice[-1]
+        finalPosition = self.funds + self.coins * self.history['price'][-1]
         self.tradingValue = (
             finalPosition - self.startingFunds) / self.startingFunds
-        startingValue = self.btcPrice[0]
-        endingValue = self.btcPrice[-1]
+        startingValue = self.history['price'][0]
+        endingValue = self.history['price'][-1]
         self.holdingValue = ((endingValue - startingValue) / startingValue)
         self.valueDifference = self.tradingValue - self.holdingValue
 
@@ -107,15 +111,12 @@ class AutoTrader:
 
     def plotTrades(self):
         numTrades = len(self.completedTrades)
-        shortMovingAverageList = stats.movingAverage(
-            self.btcPrice, self.shortLength)
-        longMovingAverageList = stats.movingAverage(self.btcPrice, self.longLength)
-        plt.plot(self.btcTime, self.btcPrice, '#5DADE2')
-        plt.plot(self.btcTime, shortMovingAverageList, 'green')
-        plt.plot(self.btcTime, longMovingAverageList, 'orange')
+        plt.plot(self.history['time'], self.history['price'], '#5DADE2')
+        plt.plot(self.history['time'], self.marketStats['shortMovingAverageList'], 'green')
+        plt.plot(self.history['time'], self.marketStats['longMovingAverageList'], 'orange')
         for i in range(numTrades):
             trade = self.completedTrades[i]
-            color = 'green' if trade.volume >= 0  else 'red'
+            color = 'green' if trade.volume >= 0 else 'red'
             stats.plotSinglePoint(trade.time, trade.price, color)
         ax = plt.gca()
         ax.patch.set_facecolor('#ABB2B9')
