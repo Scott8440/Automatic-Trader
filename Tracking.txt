@@ -1,4 +1,8 @@
 8 - 20 - 2017
   * Began project
-  * Implemented simple moving average trader 
+  * Implemented simple moving average trader
   * Results all negative
+
+8 - 22 - 2017
+  * Abstracted out market updates so AutoTrader can work for back testing and
+    also for real-time trading

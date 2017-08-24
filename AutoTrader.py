@@ -2,11 +2,8 @@ import matplotlib.pyplot as plt
 import statistics as stats
 from Trade import Trade
 
-
 class AutoTrader:
     completedTrades = []
-    shortLength = 0
-    longLength = 0
 
     # wallet status
     startingFunds = 0
@@ -19,6 +16,8 @@ class AutoTrader:
 
     # statistics
     marketStats = {}
+    shortLength = 0
+    longLength = 0
 
     # Results
     tradingValue = 0
@@ -61,7 +60,6 @@ class AutoTrader:
         self.marketStats['longAboveShort'] = longAvg > shortAvg
         self.marketStats['shortAvg'] = shortAvg
         self.marketStats['longAvg'] = longAvg
-        self.marketStats['outlierAverage'] = outlierAverage
         self.marketStats['shortMovingAverageList'].append(shortAvg)
         self.marketStats['longMovingAverageList'].append(longAvg)
         self.marketStats['outlierAverage'] = outlierAverage
