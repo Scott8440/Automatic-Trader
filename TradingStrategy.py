@@ -8,7 +8,7 @@ class TradingStrategy:
         # Update class members based on new market conditions (more trades on books)
         return None
 
-    def checkIfShouldTrade(self, history, holding, coins, funds):
+    def checkIfShouldTrade(self, history, holding, wallet):
         # Checks if a trader should make a trade, based on the current market
         # environment. Returns None if no trade should be made,
         # otherwise returns a Trade

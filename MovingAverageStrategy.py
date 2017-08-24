@@ -32,7 +32,9 @@ class MovingAverageStrategy(TradingStrategy):
         self.longMovingAverageList.append(longAvg)
         self.outlierAverage = outlierAverage
 
-    def checkIfShouldTrade(self, history, holding, coins, funds):
+    def checkIfShouldTrade(self, history, holding, wallet):
+        coins = wallet.getCoins()
+        funds = wallet.getFunds()
         if (stats.tradeIsOutlier(history['price'][-1], self.outlierAverage, 0.04)):
             return None
         if len(self.shortMovingAverageList) < 2:
@@ -40,13 +42,15 @@ class MovingAverageStrategy(TradingStrategy):
         prevShortAvg = self.shortMovingAverageList[-2]
         prevLongAvg = self.longMovingAverageList[-2]
         trade = None
-        if (holding and self.shortAboveLong and
+        if (coins and self.shortAboveLong and
               prevShortAvg < prevLongAvg):
             # Sell Coins
             trade = Trade(history['time'][-1], history['price'][-1], -coins)
-        elif (not holding and not self.shortAboveLong and
+        elif (funds and not self.shortAboveLong and
                 prevShortAvg > prevLongAvg):
             # Buy Coins
-            amountBought = funds / history['price'][-1]
+            # subtract a small amount from funds to avoid rounding errors resulting
+            # in buying more than you can afford
+            amountBought = (funds - 0.001) / history['price'][-1]
             trade = Trade(history['time'][-1], history['price'][-1], amountBought)
         return trade

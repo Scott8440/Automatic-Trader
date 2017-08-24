@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import statistics as stats
 from Trade import Trade
 from TradingStrategy import TradingStrategy
@@ -21,19 +20,13 @@ class AutoTrader:
     shortLength = 0
     longLength = 0
 
-    # Results
-    tradingValue = 0
-    holdingValue = 0
-    valudeDifference = 0
-
     # Trading Strategy
     strategy = None
 
     def __init__(self,
-                 startingFunds,
+                 wallet,
                  strategy):
-        self.funds = float(startingFunds)
-        self.startingFunds = float(startingFunds)
+        self.wallet = wallet
         self.history['price'] = []
         self.history['time'] = []
         # TODO: Should abstract the stats out
@@ -44,42 +37,27 @@ class AutoTrader:
         self.history['time'].append(trade.time)
         self.strategy.updateStatistics(self.history, trade)
         trade = self.strategy.checkIfShouldTrade(
-            self.history, self.holding, self.coins, self.funds)
+            self.history, self.holding, self.wallet)
         if (trade):
             self.tradeCoins(trade)
 
     def tradeCoins(self, trade):
-        self.coins += trade.volume
-        self.funds -= trade.volume * trade.price
-        self.holding = self.coins > 0
+        vol = trade.volume
+        price = trade.price
+        if (vol > 0):
+            self.wallet.depositCoins(vol)
+            self.wallet.withdrawFunds(vol * price)
+        else:
+            self.wallet.withdrawCoins(-vol)
+            self.wallet.depositFunds(-vol * price)
+        self.holding = self.wallet.getCoins() > 0
         self.completedTrades.append(trade)
 
-    def calcResults(self):
-        finalPosition = self.funds + self.coins * self.history['price'][-1]
-        self.tradingValue = (
-            finalPosition - self.startingFunds) / self.startingFunds
-        startingValue = self.history['price'][0]
-        endingValue = self.history['price'][-1]
-        self.holdingValue = ((endingValue - startingValue) / startingValue)
-        self.valueDifference = self.tradingValue - self.holdingValue
+    def getCompletedTrades(self):
+        return self.completedTrades
 
-    def printResults(self):
-        self.calcResults()
-        print("Holding Gain: {:.2f}%".format(self.holdingValue * 100))
-        print("Trading Value: {:.2f}%".format(self.tradingValue * 100))
-        print("Value Difference: {}".format(self.valueDifference * 100))
+    def getStrategy(self):
+        return self.strategy
 
-    def plotTrades(self):
-        numTrades = len(self.completedTrades)
-        plt.plot(self.history['time'], self.history['price'], '#5DADE2')
-        plt.plot(self.history['time'],
-                 self.strategy.shortMovingAverageList, 'green')
-        plt.plot(self.history['time'],
-                 self.strategy.longMovingAverageList, 'orange')
-        for i in range(numTrades):
-            trade = self.completedTrades[i]
-            color = 'green' if trade.volume >= 0 else 'red'
-            stats.plotSinglePoint(trade.time, trade.price, color)
-        ax = plt.gca()
-        ax.patch.set_facecolor('#ABB2B9')
-        plt.show()
+    def getHistory(self):
+        return self.history
