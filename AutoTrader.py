@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import statistics as stats
 from Trade import Trade
+from TradingStrategy import TradingStrategy
+
 
 class AutoTrader:
     completedTrades = []
@@ -24,66 +26,26 @@ class AutoTrader:
     holdingValue = 0
     valudeDifference = 0
 
+    # Trading Strategy
+    strategy = None
+
     def __init__(self,
                  startingFunds,
-                 shortLength,
-                 longLength):
+                 strategy):
         self.funds = float(startingFunds)
         self.startingFunds = float(startingFunds)
         self.history['price'] = []
         self.history['time'] = []
         # TODO: Should abstract the stats out
-        self.shortLength = shortLength
-        self.longLength = longLength
-        self.marketStats['shortMovingAverageList'] = []
-        self.marketStats['longMovingAverageList'] = []
-        self.marketStats['shortAboveLong'] = False
-        self.marketStats['longAboveShort'] = False
-        self.marketStats['shortAvg'] = 0
-        self.marketStats['longAvg'] = 0
-        self.marketStats['outlierAverage'] = 0
+        self.strategy = strategy
 
     def marketUpdate(self, trade):
         self.history['price'].append(trade.price)
         self.history['time'].append(trade.time)
-        self.updateStatistics(trade)
-        self.checkIfShouldTrade()
-
-    def updateStatistics(self, trade):
-        shortAvg = stats.singleMovingAverage(
-            self.history['price'], self.shortLength, self.marketStats['shortAvg'])
-        longAvg =  stats.singleMovingAverage(
-            self.history['price'], self.longLength, self.marketStats['longAvg'])
-        outlierAverage = stats.singleMovingAverage(
-            self.history['price'], 100, self.marketStats['outlierAverage'])
-        self.marketStats['shortAboveLong'] = shortAvg > longAvg
-        self.marketStats['longAboveShort'] = longAvg > shortAvg
-        self.marketStats['shortAvg'] = shortAvg
-        self.marketStats['longAvg'] = longAvg
-        self.marketStats['shortMovingAverageList'].append(shortAvg)
-        self.marketStats['longMovingAverageList'].append(longAvg)
-        self.marketStats['outlierAverage'] = outlierAverage
-
-    def checkIfShouldTrade(self):
-        if (stats.tradeIsOutlier(self.history['price'][-1], self.marketStats['outlierAverage'], 0.04)):
-            console.log('outlier')
-            return
-        if len(self.marketStats['shortMovingAverageList']) < 2:
-            return
-        prevShortAvg = self.marketStats['shortMovingAverageList'][-2]
-        prevLongAvg = self.marketStats['longMovingAverageList'][-2]
-        if (self.holding and self.marketStats['shortAboveLong'] and
-              prevShortAvg < prevLongAvg):
-            # Sell Coins
-            print('sell')
-            trade = Trade(self.history['time'][-1], self.history['price'][-1], -self.coins)
-            self.tradeCoins(trade)
-        elif (not self.holding and not self.marketStats['shortAboveLong'] and
-                prevShortAvg > prevLongAvg):
-            # Buy Coins
-            print('buy')
-            amountBought = self.funds / self.history['price'][-1]
-            trade = Trade(self.history['time'][-1], self.history['price'][-1], amountBought)
+        self.strategy.updateStatistics(self.history, trade)
+        trade = self.strategy.checkIfShouldTrade(
+            self.history, self.holding, self.coins, self.funds)
+        if (trade):
             self.tradeCoins(trade)
 
     def tradeCoins(self, trade):
@@ -110,8 +72,10 @@ class AutoTrader:
     def plotTrades(self):
         numTrades = len(self.completedTrades)
         plt.plot(self.history['time'], self.history['price'], '#5DADE2')
-        plt.plot(self.history['time'], self.marketStats['shortMovingAverageList'], 'green')
-        plt.plot(self.history['time'], self.marketStats['longMovingAverageList'], 'orange')
+        plt.plot(self.history['time'],
+                 self.strategy.shortMovingAverageList, 'green')
+        plt.plot(self.history['time'],
+                 self.strategy.longMovingAverageList, 'orange')
         for i in range(numTrades):
             trade = self.completedTrades[i]
             color = 'green' if trade.volume >= 0 else 'red'
